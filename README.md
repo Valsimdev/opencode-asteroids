@@ -43,3 +43,4 @@ Luego visita `http://localhost:3000`.
 - 3 vidas con invencibilidad temporal al reaparecer (parpadeo)
 - Asteroides se parten en fragmentos más pequeños al ser destruidos
 - Partículas de explosión al destruir asteroides
+- **Power-up Velocidad**: al destruir un asteroide hay una probabilidad de que suelte un ítem flotante (orb cian con símbolo "V"). Al recogerlo, la propulsión de la nave se duplica durante 5 segundos, permitiendo moverse el doble de rápido. El ítem no recogido expira a los ~10 segundos. La nave se tiñe de cian y muestra un contador en el HUD mientras el efecto está activo.
