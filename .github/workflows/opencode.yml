@@ -17,8 +17,8 @@ jobs:
     permissions:
       id-token: write
       contents: read
-      pull-requests: write
-      issues: write
+      pull-requests: read
+      issues: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -30,6 +30,5 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: opencode-go/glm-5.2
-          USE_GITHUB_TOKEN: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          model: opencode-go/glm-5.2 
+          use_github_token: true
