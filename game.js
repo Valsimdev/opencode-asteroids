@@ -68,6 +68,17 @@ const SKINS = [
     star: { spikes: 4, outer: 18, inner: 7 },
     flame: { rear: -7, halfW: 3 },
   },
+  {
+    // Nave morada gigante: el doble de grande (scale) y otorga el doble de
+    // puntos (scoreMult). Reutiliza la silueta clásica escalada.
+    id: 'giant', name: 'Morada',
+    stroke: '#90f', strokeBoost: '#c6f',
+    thrust: 'rgba(160, 0, 255, 0.85)', thrustBoost: 'rgba(200, 100, 255, 0.9)',
+    verts: [[20, 0], [-12, -9], [-7, 0], [-12, 9]],
+    flame: { rear: -8, halfW: 4 },
+    scale: 2,
+    scoreMult: 2,
+  },
 ];
 
 let currentSkin = 0;
@@ -349,7 +360,7 @@ class Ship {
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
+    this.radius = 12 * (SKINS[currentSkin].scale || 1);
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
@@ -390,7 +401,7 @@ class Ship {
   tryShoot() {
     if (this.shootCooldown > 0 || this.dead) return [];
     this.shootCooldown = 0.2;
-    const NOSE = 21;
+    const NOSE = 21 * (SKINS[currentSkin].scale || 1);
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
     if (this.tripleTimer > 0) {
@@ -409,20 +420,27 @@ class Ship {
     // Parpadeo durante invencibilidad de reaparición
     if (this.invincible > 0 && Math.floor(this.invincible * 8) % 2 === 0) return;
 
+    const skin = SKINS[currentSkin];
+    const sc = skin.scale || 1;
+
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    drawShipSkin(ctx, SKINS[currentSkin], {
+    ctx.scale(sc, sc);
+    drawShipSkin(ctx, skin, {
       boosting: this.speedTimer > 0,
       tripling: this.tripleTimer > 0,
       thrusting: this.thrusting,
-      lineWidth: 1.5,
+      lineWidth: 1.5 / sc,
     });
+    ctx.restore();
 
-    // Anillo de escudo
+    // Anillo de escudo (en espacio no escalado: radio ya incluye la escala)
     if (this.shieldTimer > 0) {
       const pulse = 1 + Math.sin(this.shieldTimer * 8) * 0.1;
       const r = this.radius * 2 * pulse;
+      ctx.save();
+      ctx.translate(this.x, this.y);
       ctx.strokeStyle = 'rgba(0, 170, 255, 0.85)';
       ctx.lineWidth   = 2;
       ctx.beginPath();
@@ -432,9 +450,8 @@ class Ship {
       ctx.beginPath();
       ctx.arc(0, 0, r, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
     }
-
-    ctx.restore();
   }
 }
 
@@ -693,7 +710,8 @@ function update(dt) {
         b.dead = true;
         a.dead = true;
         const isStar = !!a.isShootingStar;
-        score += isStar ? SHOOTING_STAR_POINTS : POINTS[a.size];
+        const pts = isStar ? SHOOTING_STAR_POINTS : POINTS[a.size];
+        score += pts * (SKINS[currentSkin].scoreMult || 1);
         explode(a.x, a.y, isStar ? 16 : a.size * 5);
         newAsteroids.push(...a.split());
         const dropChance = isStar ? SHOOTING_STAR_POWERUP_CHANCE : POWERUP_DROP_CHANCE;
@@ -761,7 +779,8 @@ function drawHUD() {
   ctx.font = '15px monospace';
 
   ctx.textAlign = 'left';
-  ctx.fillText(`SCORE  ${score}`, 14, 26);
+  const scoreMult = SKINS[currentSkin].scoreMult || 1;
+  ctx.fillText(`SCORE  ${score}${scoreMult > 1 ? `  x${scoreMult}` : ''}`, 14, 26);
 
   if (ship.speedTimer > 0) {
     ctx.fillStyle = '#0ff';
@@ -809,11 +828,12 @@ function drawMenu() {
   ctx.fillText('ASTEROIDS', W / 2, 110);
 
   // Vista previa de la skin (apuntando hacia arriba)
+  const sc = skin.scale || 1;
   ctx.save();
   ctx.translate(W / 2, H / 2 - 10);
   ctx.rotate(-Math.PI / 2);
-  ctx.scale(1.8, 1.8);
-  drawShipSkin(ctx, skin, { boosting: false, thrusting: false, lineWidth: 1.5 });
+  ctx.scale(1.8 * sc, 1.8 * sc);
+  drawShipSkin(ctx, skin, { boosting: false, thrusting: false, lineWidth: 1.5 / sc });
   ctx.restore();
 
   // Nombre e índice
@@ -824,6 +844,12 @@ function drawMenu() {
   ctx.font = '14px monospace';
   ctx.fillStyle = 'rgba(255,255,255,0.6)';
   ctx.fillText(`${currentSkin + 1} / ${SKINS.length}`, W / 2, H / 2 + 118);
+
+  // Bono de puntos si la skin lo otorga
+  if (skin.scoreMult > 1) {
+    ctx.fillStyle = skin.stroke;
+    ctx.fillText(`PUNTOS x${skin.scoreMult}`, W / 2, H / 2 + 140);
+  }
 
   // Ayudas
   ctx.font = '15px monospace';
